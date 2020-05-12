@@ -36,7 +36,7 @@ const InitializeInAppPayments = (props) => {
   const onReady = (props.onReady) ? props.onReady : () => {}
   const onProgress = (props.onProgress) ? props.onProgress : () => {} // Use this to log progress for debugging purposes
   const onPayment = (props.onPayment) ? props.onPayment : () => {} // Make this idempotent or call afterPayment when order is recorded
-  const onError = (props.onError) ? props.onError : () => {}
+  const onError = (props.onError) ? props.onError : (error) => { throw error }
   const devMode = (props.devMode) ? props.devMode : __DEV__
 
   const [iapListeners, setIapListeners] = useGlobal('iap_listeners')
