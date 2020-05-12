@@ -1,7 +1,6 @@
 import { useGlobal, setGlobal } from 'reactn'
 import RNIap, { purchaseErrorListener, purchaseUpdatedListener } from 'react-native-iap'
 
-
 setGlobal({
   iap_listeners: [],
   iap_products: [],
