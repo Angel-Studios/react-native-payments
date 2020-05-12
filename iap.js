@@ -13,16 +13,22 @@ const afterPayment = ({ purchase }) => {
 }
 
 const startPayment = async ({ sku, isSubscription = false }) => {
-  try {
-    if (!isSubscription) {
-      await RNIap.requestPurchase(sku, false)
-      // The 'false' above means you should call afterPayment once the purchase is successfully recorded in our backend database
-      // Otherwise purchaseUpdatedListener and/or purchaseErrorListener will retrigger for those purchases each time the app restarts.
-    } else {
-      await RNIap.requestSubscription(sku, false)
-    }
-  } catch (error) {
-    onError(error)
+  const [iapReady] = useGlobal('iap_ready')
+  if (iapReady) {
+    try {
+      if (!isSubscription) {
+        await RNIap.requestPurchase(sku, false)
+        // The 'false' above means you should call afterPayment once the purchase is successfully recorded in our backend database
+        // Otherwise purchaseUpdatedListener and/or purchaseErrorListener will retrigger for those purchases each time the app restarts.
+      } else {
+        await RNIap.requestSubscription(sku, false)
+      }
+    } catch (error) {
+      onError(error)
+    }  
+  } else {
+    // I'm not sure what the format should be for errors, please adjust if you have something better
+    onError({ code: 'gtxj26', message: 'In-app payments are not ready yet. Please try again in a few minutes, then restart your app, if it still is not working.' })
   }
 }
 
@@ -37,7 +43,7 @@ const InitializeInAppPayments = (props) => {
   // It might be useful to use the following globals in the UI
   const [, setIapProducts] = useGlobal('iap_products')
   const [, setIapSubscriptions] = useGlobal('iap_subscriptions')
-  const [, setIapReady] = useGlobal('iap_ready') 
+  const [, setIapReady] = useGlobal('iap_ready')
   useEffect(() => {
     setIapReady(false)
     setIapListeners([
