@@ -8,9 +8,9 @@ There is a check in place to prevent payments (using onError) until things are r
 otherwise the user gets charged, but we don't know about it.
 
 # Apple
-Limits in app purchases and subscriptions to $999.99
+Limits in-app purchases and subscriptions to $999.99
 
-People can purchase up to 10 of a single product at a time
+Users can in-app purchase up to 10 of a single product at a time
 
 # Android
-Limits in app purchases to $400
+Limits in-app purchases to $400

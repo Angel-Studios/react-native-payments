@@ -1,6 +1,7 @@
 import {
   Platform
 } from 'react-native'
+import { useGlobal, setGlobal, addReducer, useDispatch } from 'reactn'
 import tstripe from 'tipsi-stripe'
 
 setGlobal({

@@ -1,3 +1,6 @@
+import {
+  useEffect
+} from 'react-native'
 import { useGlobal, setGlobal, addReducer, useDispatch } from 'reactn'
 import RNIap, { purchaseErrorListener, purchaseUpdatedListener } from 'react-native-iap'
 
@@ -32,7 +35,7 @@ export async function afterComplete ({ purchase, error }) {
   }
 }
 
-export function startInAppPayment (props) {
+export async function startInAppPayment (props) {
   const { sku, amount, description, isSubscription = false } = props
   const { onProgress = () => {}, onSuccess = () => {}, onError = () => {}  } = props
   const saveCallbacks = useDispatch('save_in_app_pay_callbacks')
@@ -54,7 +57,7 @@ export function startInAppPayment (props) {
       // Otherwise purchaseUpdatedListener and/or purchaseErrorListener will retrigger for those purchases each time the app restarts.
     } catch (error) {
       onError(error)
-    }  
+    }
   } else if (iapReady === null) {
     onError({ message: 'In-app payments have not been initialized. Please contact the support.' })
   } else {
@@ -65,7 +68,9 @@ export function startInAppPayment (props) {
 
 export default function InitializeInAppPay (props) {
   // const { productIds, subscriptionIds } = props // These are consumed in preLoad(props)
+  // eslint-disable-next-line no-undef
   const { devMode = !!__DEV__ } = props
+  const { onProgress = () => {} } = props
   const [, setDevMode] = useGlobal('in_app_pay_devmode')
   setDevMode(devMode)
 
@@ -77,27 +82,27 @@ export default function InitializeInAppPay (props) {
   useEffect(() => {
     // Save the error so we can put it somewhere the user can see it and report on it.
     addReducer('save_in_app_pay_error', (global, dispatch, error) => ({
-      in_app_pay_errors: [ ...global.in_app_pay_errors, error],
+      in_app_pay_errors: [...global.in_app_pay_errors, error]
     }))
     addReducer('delete_in_app_pay_error', (global, dispatch, error) => ({
-      in_app_pay_errors: [...global.in_app_pay_errors.filter(item => item !== error)],
+      in_app_pay_errors: [...global.in_app_pay_errors.filter(item => item !== error)]
     }))
 
     // Save the update in case we want to try again if our backend server was down/broken.
     addReducer('save_in_app_pay_update', (global, dispatch, purchase) => ({
-      in_app_pay_updates: [ ...global.in_app_pay_updates, purchase],
+      in_app_pay_updates: [ ...global.in_app_pay_updates, purchase]
     }))
     addReducer('delete_in_app_pay_update', (global, dispatch, purchase) => ({
-      in_app_pay_updates: [...global.in_app_pay_updates.filter(item => item !== purchase)],
+      in_app_pay_updates: [...global.in_app_pay_updates.filter(item => item !== purchase)]
     }))
 
     // Make it so we can catch individual purchases and route them to the proper callback
     addReducer('save_in_app_pay_callbacks', (global, dispatch, sku, callbacks) => ({
-      in_app_pay_callbacks: { ...global.in_app_pay_callbacks, [sku]: callbacks},
+      in_app_pay_callbacks: { ...global.in_app_pay_callbacks, [sku]: callbacks}
     }))
     addReducer('delete_in_app_pay_callbacks', (global, dispatch, sku) => {
       const { [sku]: _, ...newCallBacks } = global.in_app_pay_callbacks
-      return { in_app_pay_callbacks: newCallBacks}
+      return { in_app_pay_callbacks: newCallBacks }
     })
 
     // Apple doesn't give an immediate response to purchases, so we need to listen for them.
@@ -106,13 +111,17 @@ export default function InitializeInAppPay (props) {
       purchaseUpdatedListener((purchase) => {
         const saveUpdate = useDispatch('save_in_app_pay_update')
         saveUpdate(purchase)
+        console.log('purchase', purchase)
+        const { sku } = purchase
         const [iapCallbacks] = useGlobal('in_app_pay_callbacks')
-        if (iapCallbacks.hasOwnProperty(sku)) {
+        if (sku in iapCallbacks) {
           const { onProgress, onSuccess, sku, amount, description, isSubscription } = iapCallbacks[sku]
           onProgress({ event: 'in_app_pay_update', sku, amount, description, isSubscription, meta: { purchase } })
           onSuccess(purchase)
           const deleteCallbacks = useDispatch('delete_in_app_pay_callbacks')
           deleteCallbacks(sku)
+        } else {
+          onProgress({ event: 'in_app_pay_update', meta: { purchase } })
         }
         // The purchase will come through the listener each time it is started
         // until RNIap.finishTransaction is called (see afterComplete)
@@ -128,24 +137,26 @@ export default function InitializeInAppPay (props) {
         //   const deleteCallbacks = useDispatch('delete_in_app_pay_callbacks')
         //   deleteCallbacks(sku)
         // }
-    })
+      })
     ])
-    
+
     // We have to get more details from Apple for all skus that we might use,
     // or we might charge them and return an error instead of fulfilling their order
     preLoad(props)
-    
+
     return () => {
       setIapReady(false)
       iapListeners.map(listener => listener.remove())
       setIapListeners([])
     }
   }, [])
-
 }
 
 const preLoad = async (props) => {
   const { productIds, subscriptionIds } = props
+  // eslint-disable-next-line no-undef
+  const { devMode = !!__DEV__ } = props
+  const { onProgress = () => {} } = props
   const productSkus = (devMode) ? ['android.test.purchased'] : productIds
   const subscriptionSkus = (devMode) ? [] : subscriptionIds
 
@@ -159,14 +170,14 @@ const preLoad = async (props) => {
     const startTime = Date.now()
     products = await RNIap.getProducts(productSkus)
     onProgress({ event: 'in_app_pay_got_products', meta: { products, elapsed: (Date.now() - startTime), productSkus } })
-  } 
+  }
   setIapProducts(products)
   let subscriptions = []
   if (subscriptionSkus.length > 0) {
     const startTime = Date.now()
     subscriptions = await RNIap.getSubscriptions(subscriptionSkus)
     onProgress({ event: 'in_app_pay_got_subscriptions', meta: { subscriptions, elapsed: (Date.now() - startTime), subscriptionSkus } })
-  } 
+  }
   setIapSubscriptions(subscriptions)
   // RNIap.getProducts,getSubscriptions must complete before RNIap.requestPurchase or the user could get charged but we only see an error.
   setIapReady(true)
