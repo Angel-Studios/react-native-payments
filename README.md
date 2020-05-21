@@ -8,9 +8,12 @@ There is a check in place to prevent payments (using onError) until things are r
 otherwise the user gets charged, but we don't know about it.
 
 # Apple
-Limits in-app purchases and subscriptions to $999.99
+Product ID is a unique alphanumeric ID that is used for reporting. After you use a Product ID for one product, it can’t be used again, even if the product is deleted. They can only contain alphanumeric characters, underscores, and periods, but the Reference Name can contain more 
 
-Users can in-app purchase up to 10 of a single product at a time
+Apple limits in-app purchases and subscriptions to no more than $999.99, and users can in-app purchase only up to 10 of a single product at a time
 
 # Android
-Limits in-app purchases to $400
+Product ID starts with number or lowercase letter and can contain only numbers (0-9), lowercase letters (a-z), underscores (_) & periods (.).
+You can’t modify a product ID after the item is created, and you can’t reuse a product ID within an app. 
+
+Google limits in-app purchases to no more than $400.

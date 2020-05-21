@@ -21,7 +21,7 @@ export async function getErrors () {
   const [npErrors] = useGlobal('native_pay_errors')
   return npErrors
 }
-export async function afterComplete ({ purchase, error }) {
+export async function afterNativeComplete ({ purchase, error }) {
   if (purchase) {
     const deleteUpdate = useDispatch('delete_native_pay_update')
     deleteUpdate(purchase)
@@ -35,7 +35,7 @@ export async function afterComplete ({ purchase, error }) {
 // Opens the Payment UI
 export async function startNativePayment (props) {
   const { sku, description, amount, isSubscription = false } = props
-  const { onProgress = () => {}, onSuccess = () => {}, onError = () => {}  } = props
+  const { onProgress = () => {}, onSuccess = () => {}, onError = () => {} } = props
   const [npReady] = useGlobal('native_pay_ready')
   const [npPrefer] = useGlobal('native_pay_prefer')
   const platformWord = (Platform.OS === 'ios') ? 'Apple' : 'Google'
@@ -124,24 +124,24 @@ export default function InitializeNativePay (props) {
 const getNativePaymentToken = async (props, error_message) => {
   // Native Pay
   const { sku, description, amount, isSubscription = false } = props
-  const { onProgress = () => {}, onSuccess = () => {}, onError = () => {}  } = props
+  const { onProgress = () => {}, onSuccess = () => {}, onError = () => {} } = props
   onProgress({ event: 'native_pay_viewed_ui', sku, description, amount, isSubscription })
   const { options, items } = getOptions(Platform.OS, amount, description)
   const token = await tstripe.paymentRequestWithNativePay(options, items)
   onProgress({ event: 'native_pay_token_created', sku, description, amount, isSubscription, meta: { token } })
-  if (!token?.tokenId) throw new Error('Could not get Native Pay token')
+  if (!token?.tokenId) onError({ message: 'Could not get Native Pay token' })
   onSuccess(token)
   return token
 }
 
-const getCardPaymentToken = async (amount, description, onProgress) => {
+const getCardPaymentToken = async (props) => {
   // Card Entry
   const { sku, description, amount, isSubscription = false } = props
-  const { onProgress = () => {}, onSuccess = () => {}, onError = () => {}  } = props
+  const { onProgress = () => {}, onSuccess = () => {}, onError = () => {} } = props
   onProgress({ event: 'credit_card_viewed_ui', sku, description, amount, isSubscription })
   const token = await tstripe.paymentRequestWithCardForm()
   onProgress({ event: 'credit_card_token_created', sku, description, amount, isSubscription, meta: { token } })
-  if (!token?.tokenId) throw new Error('Could not get card token')
+  if (!token?.tokenId) onError({ message: 'Could not get card token' })
   onSuccess(token)
   return token
 }
