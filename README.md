@@ -12,6 +12,8 @@ Product ID is a unique alphanumeric ID that is used for reporting. After you use
 
 Apple limits in-app purchases and subscriptions to no more than $999.99, and users can in-app purchase only up to 10 of a single product at a time
 
+You can't do in-app purchases in the Simulator. You must use a real device. You can set up a separate Apple ID account for doing in-app purchases in the Sandbox.
+
 # Android
 Product ID starts with number or lowercase letter and can contain only numbers (0-9), lowercase letters (a-z), underscores (_) & periods (.).
 You can’t modify a product ID after the item is created, and you can’t reuse a product ID within an app. 

@@ -63,6 +63,7 @@ export default function useInAppPayments (props) {
     if (iapListeners.length === 0) {
       setIapListeners([
         purchaseUpdatedListener(async (purchase) => {
+          console.log('purchaseUpdatedListener', { purchase })
           onProgress({ event: 'iap_update', meta: { purchase } })
           const receipt = purchase.transactionReceipt
           if (receipt) {
@@ -101,12 +102,12 @@ export default function useInAppPayments (props) {
       try {
         if (!isSubscription) {
           onProgress({ event: 'iap_requesting_purchase', sku, amount, description, isSubscription })
-          console.log('requestPurchase:', sku)
-          await requestPurchase(sku, false)
-          console.log('requestedPurchase:', sku)
+          const purchase = await requestPurchase(sku, false)
+          onProgress({ event: 'iap_requested_purchase', sku, amount, description, isSubscription, meta: { purchase } })
         } else {
           onProgress({ event: 'iap_requesting_subscription', sku, amount, description, isSubscription })
-          await requestSubscription(sku, false)
+          const subscription = await requestSubscription(sku, false)
+          onProgress({ event: 'iap_requested_purchase', sku, amount, description, isSubscription, meta: { subscription } })
         }
         // The 'false' above means you should call afterComplete once the purchase is successfully recorded in our backend database
         // Otherwise purchaseUpdatedListener and/or purchaseErrorListener will retrigger for those purchases each time the app restarts.
