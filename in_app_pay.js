@@ -1,5 +1,5 @@
 import { useEffect, Platform } from 'react'
-import { useGlobal, setGlobal, addReducer, useDispatch } from 'reactn'
+import { useGlobal, setGlobal } from 'reactn'
 import AsyncStorage from '@react-native-community/async-storage'
 import {
   getProducts,
@@ -142,6 +142,6 @@ export const getInAppPaymentDataAsync = async () => {
   const json = { ...(JSON.parse(iapSettings)) }
   return json
 }
-const clearInAppPaymentDataAsync = async () => {
-  await AsyncStorage.removeItem(IAPSETTINGS)
-}
+// const clearInAppPaymentDataAsync = async () => {
+//   await AsyncStorage.removeItem(IAPSETTINGS)
+// }
