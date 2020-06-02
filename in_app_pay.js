@@ -1,11 +1,10 @@
-import { useEffect, Platform } from 'react'
+import { useEffect } from 'react'
 import { useGlobal, setGlobal } from 'reactn'
 import AsyncStorage from '@react-native-community/async-storage'
 import {
   getProducts,
   getSubscriptions,
   finishTransaction,
-  finishTransactionIOS,
   purchaseErrorListener,
   purchaseUpdatedListener,
   requestPurchase,
@@ -21,19 +20,14 @@ setGlobal({
 })
 
 export default function useInAppPayments (props) {
-  const { onProgress = () => { } } = props
+  const { onProgress = () => { }, onSuccess = () => { } } = props
   const [iapListeners, setIapListeners] = useGlobal('in_app_pay_listeners')
   const [iapProducts, setIapProducts] = useGlobal('in_app_pay_products')
   const [iapSubscriptions, setIapSubscriptions] = useGlobal('in_app_pay_subscriptions')
   const [iapReady, setIapReady] = useGlobal('in_app_pay_ready')
   const [iapProcessing, setIapProcessing] = useGlobal('in_app_pay_processing')
 
-  const processNewPayment = async (payment) => {
-    await updateInAppPaymentDataAsync(payment)
-    setIapProcessing(false)
-  }
   const iapSetup = async ({ productIds, subscriptionIds }) => {
-    console.log('iapSetup', { productIds, subscriptionIds })
     if (productIds && !iapReady) {
       const startTime = Date.now()
       const products = await getProducts(productIds)
@@ -49,9 +43,44 @@ export default function useInAppPayments (props) {
     // It seems getProducts,getSubscriptions must complete before requestPurchase
     // or the user could get charged but we only see an error.
   }
+  const iapListen = async () => {
+    setIapListeners([
+      purchaseUpdatedListener(async (purchase) => {
+        // Expect results something like this:
+        // {
+        //   "purchase": {
+        //     "productId": "vidangel_riot_0015",
+        //     "transactionId": "1000000673323302",
+        //     "transactionDate": 1591039683000,
+        //     "transactionReceipt": "..."
+        //   }
+        // }
+        // More detail is available in a query for all previous purchases
+        console.log('purchaseUpdatedListener', { purchase })
+        onProgress({ event: 'iap_update', meta: { purchase } })
+        const receipt = purchase.transactionReceipt
+        if (receipt) {
+          try {
+            const { sku, amount, description, isSubscription } = await getInAppPaymentDataAsync()
+            onSuccess({ sku, amount, description, isSubscription, purchase })
+            await finishTransaction(purchase)
+          } catch (iapError) {
+            onProgress({ event: 'iap_error', meta: { iapError: iapError.message } })
+          }
+        }
+      }),
+      purchaseErrorListener(async (error) => {
+        onProgress({ event: 'iap_error', meta: { error } })
+      })
+    ])
+  }
+  // const iapRefresh = async () => {
+  //   iapListeners.map(listener => listener.remove())
+  //   iapListen()
+  // }
 
   useEffect(() => {
-    if (iapListeners.length === 2 && (iapProducts.length || iapSubscriptions.length)) {
+    if (iapListeners.length === 2 && (iapProducts?.length || iapSubscriptions?.length)) {
       console.log('iapReady')
       setIapReady(true)
     }
@@ -61,27 +90,7 @@ export default function useInAppPayments (props) {
     // Apple doesn't give an immediate response to purchases, so we need to listen for them.
     // But we don't want multiple listeners at once, or they both get each event.
     if (iapListeners.length === 0) {
-      setIapListeners([
-        purchaseUpdatedListener(async (purchase) => {
-          console.log('purchaseUpdatedListener', { purchase })
-          onProgress({ event: 'iap_update', meta: { purchase } })
-          const receipt = purchase.transactionReceipt
-          if (receipt) {
-            try {
-              await processNewPayment(purchase)
-              if (Platform.OS === 'ios') {
-                finishTransactionIOS(purchase.transactionId)
-              }
-              await finishTransaction(purchase)
-            } catch (iapError) {
-              onProgress({ event: 'iap_error', meta: { iapError } })
-            }
-          }
-        }),
-        purchaseErrorListener(async (error) => {
-          onProgress({ event: 'iap_error', meta: { error } })
-        })
-      ])
+      iapListen()
     }
     return () => {
       // This stuff could get run multiple times without problems
@@ -94,24 +103,22 @@ export default function useInAppPayments (props) {
   async function iapStartPurchase (props) {
     updateInAppPaymentDataAsync(props)
     const { sku, amount, description, isSubscription = false } = props
-    const { onProgress = () => {}, onSuccess = () => {}, onError = () => {} } = props
+    const { onError = () => {} } = props
 
     if (iapReady) {
       // TODO: Check for sku in in_app_pay_products and in_app_pay_subscriptions
       // onError({ message: 'Apple product sku not set up in initialization. Please contact the developers.' })
+      setIapProcessing(true)
       try {
         if (!isSubscription) {
           onProgress({ event: 'iap_requesting_purchase', sku, amount, description, isSubscription })
-          const purchase = await requestPurchase(sku, false)
-          onProgress({ event: 'iap_requested_purchase', sku, amount, description, isSubscription, meta: { purchase } })
+          requestPurchase(sku, false)
         } else {
           onProgress({ event: 'iap_requesting_subscription', sku, amount, description, isSubscription })
-          const subscription = await requestSubscription(sku, false)
-          onProgress({ event: 'iap_requested_purchase', sku, amount, description, isSubscription, meta: { subscription } })
+          requestSubscription(sku, false)
         }
         // The 'false' above means you should call afterComplete once the purchase is successfully recorded in our backend database
         // Otherwise purchaseUpdatedListener and/or purchaseErrorListener will retrigger for those purchases each time the app restarts.
-        onSuccess({ event: 'iap_awaiting_update', sku, amount, description, isSubscription })
       } catch (error) {
         onError(error)
       }
