@@ -103,7 +103,7 @@ export default function useInAppPayments (props) {
   async function iapStartPurchase (props) {
     updateInAppPaymentDataAsync(props)
     const { sku, amount, description, isSubscription = false } = props
-    const { onError = () => {} } = props
+    const { onError = () => {}, onComplete = () => {} } = props
 
     if (iapReady) {
       // TODO: Check for sku in in_app_pay_products and in_app_pay_subscriptions
@@ -112,10 +112,12 @@ export default function useInAppPayments (props) {
       try {
         if (!isSubscription) {
           onProgress({ event: 'iap_requesting_purchase', sku, amount, description, isSubscription })
-          requestPurchase(sku, false)
+          const purchase = await requestPurchase(sku, false)
+          onComplete({ sku, amount, description, isSubscription, purchase })
         } else {
           onProgress({ event: 'iap_requesting_subscription', sku, amount, description, isSubscription })
-          requestSubscription(sku, false)
+          const subscription = await requestSubscription(sku, false)
+          onComplete({ sku, amount, description, isSubscription, subscription })
         }
         // The 'false' above means you should call afterComplete once the purchase is successfully recorded in our backend database
         // Otherwise purchaseUpdatedListener and/or purchaseErrorListener will retrigger for those purchases each time the app restarts.
