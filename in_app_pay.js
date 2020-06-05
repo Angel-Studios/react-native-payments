@@ -80,7 +80,7 @@ export default function useInAppPayments (props) {
   // }
 
   useEffect(() => {
-    if (iapListeners.length === 2 && (iapProducts?.length || iapSubscriptions?.length)) {
+    if (iapListeners?.length === 2 && (iapProducts?.length || iapSubscriptions?.length)) {
       console.log('iapReady')
       setIapReady(true)
     }
@@ -89,7 +89,7 @@ export default function useInAppPayments (props) {
   useEffect(() => {
     // Apple doesn't give an immediate response to purchases, so we need to listen for them.
     // But we don't want multiple listeners at once, or they both get each event.
-    if (iapListeners.length === 0) {
+    if (iapListeners?.length === 0) {
       iapListen()
     }
     return () => {
