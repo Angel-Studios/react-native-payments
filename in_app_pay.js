@@ -82,27 +82,6 @@ export default function useInAppPayments (props) {
     }
   }
 
-  // useEffect(() => {
-  //   if (iapListeners?.length === 2 && (iapProducts?.length || iapSubscriptions?.length)) {
-  //     onProgress({ event: 'iap_ready' })
-  //     setIapReady(true)
-  //   }
-  // }, [iapListeners, iapProducts, iapSubscriptions])
-
-  useEffect(() => {
-    // // Apple doesn't give an immediate response to purchases, so we need to listen for them.
-    // // But we don't want multiple listeners at once, or they both get each event.
-    // if (iapListeners?.length === 0) {
-    //   iapListen()
-    // }
-    // return () => {
-    //   // This stuff could get run multiple times without problems
-    //   setIapReady(false)
-    //   iapListeners.map(listener => listener.remove())
-    //   setIapListeners([])
-    // }
-  }, [])
-
   async function iapStartPurchase (props) {
     updateInAppPaymentDataAsync(props)
     const { sku, amount, description, isSubscription = false } = props
