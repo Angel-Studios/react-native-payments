@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useGlobal, setGlobal } from 'reactn'
+import { useState } from 'react'
 import AsyncStorage from '@react-native-community/async-storage'
 import {
   getProducts,
@@ -11,93 +11,94 @@ import {
   requestSubscription
 } from 'react-native-iap'
 
-setGlobal({
-  in_app_pay_listeners: [],
-  in_app_pay_products: [],
-  in_app_pay_subscriptions: [],
-  in_app_pay_ready: null,
-  in_app_pay_processing: false
-})
+// setGlobal({
+//   in_app_pay_listeners: [],
+//   in_app_pay_products: [],
+//   in_app_pay_subscriptions: [],
+//   in_app_pay_ready: null,
+//   in_app_pay_processing: false
+// })
+let inAppPayListeners
+let inAppPayProducts
+let inAppPaySubscriptions
 
 export default function useInAppPayments (props) {
   const { onProgress = () => { }, onSuccess = () => { } } = props
-  const [iapListeners, setIapListeners] = useGlobal('in_app_pay_listeners')
-  const [iapProducts, setIapProducts] = useGlobal('in_app_pay_products')
-  const [iapSubscriptions, setIapSubscriptions] = useGlobal('in_app_pay_subscriptions')
-  const [iapReady, setIapReady] = useGlobal('in_app_pay_ready')
-  const [iapProcessing, setIapProcessing] = useGlobal('in_app_pay_processing')
+  const [iapReady, setIapReady] = useState(false)
+  const [iapProcessing, setIapProcessing] = useState(false)
 
   const iapSetup = async ({ productIds, subscriptionIds }) => {
-    if (productIds && !iapReady) {
-      const startTime = Date.now()
-      const products = await getProducts(productIds)
-      onProgress({ event: 'iap_got_products', meta: { products, elapsed: (Date.now() - startTime), productIds } })
-      setIapProducts(products)
-    }
-    if (subscriptionIds && !iapReady) {
-      const startTime = Date.now()
-      const subscriptions = await getSubscriptions(subscriptionIds)
-      onProgress({ event: 'iap_got_subscriptions', meta: { subscriptions, elapsed: (Date.now() - startTime), subscriptionIds } })
-      setIapSubscriptions(subscriptions)
-    }
-    // It seems getProducts,getSubscriptions must complete before requestPurchase
-    // or the user could get charged but we only see an error.
-  }
-  const iapListen = async () => {
-    setIapListeners([
-      purchaseUpdatedListener(async (purchase) => {
-        // Expect results something like this:
-        // {
-        //   "purchase": {
-        //     "productId": "vidangel_riot_0015",
-        //     "transactionId": "1000000673323302",
-        //     "transactionDate": 1591039683000,
-        //     "transactionReceipt": "..."
-        //   }
-        // }
-        // More detail is available in a query for all previous purchases
-        console.log('purchaseUpdatedListener', { purchase })
-        onProgress({ event: 'iap_update', meta: { purchase } })
-        const receipt = purchase.transactionReceipt
-        if (receipt) {
-          try {
-            const { sku, amount, description, isSubscription } = await getInAppPaymentDataAsync()
-            onSuccess({ sku, amount, description, isSubscription, purchase })
-            await finishTransaction(purchase)
-          } catch (iapError) {
-            onProgress({ event: 'iap_error', meta: { iapError: iapError.message } })
-          }
-        }
-      }),
-      purchaseErrorListener(async (error) => {
-        onProgress({ event: 'iap_error', meta: { error } })
-      })
-    ])
-  }
-  // const iapRefresh = async () => {
-  //   iapListeners.map(listener => listener.remove())
-  //   iapListen()
-  // }
-
-  useEffect(() => {
-    if (iapListeners?.length === 2 && (iapProducts?.length || iapSubscriptions?.length)) {
-      console.log('iapReady')
+    onProgress({ event: 'iap_setup', meta: { productIds, subscriptionIds } })
+    if (Platform.OS === 'ios') {
+      if (productIds) {
+        const startTime = Date.now()
+        const products = await getProducts(productIds)
+        onProgress({ event: 'iap_setup_products', meta: { products, elapsed: (Date.now() - startTime), productIds } })
+        inAppPayProducts = products
+      }
+      if (subscriptionIds) {
+        const startTime = Date.now()
+        const subscriptions = await getSubscriptions(subscriptionIds)
+        onProgress({ event: 'iap_setup_subscriptions', meta: { subscriptions, elapsed: (Date.now() - startTime), subscriptionIds } })
+        inAppPaySubscriptions = subscriptions
+      }
+      // It seems getProducts,getSubscriptions must complete before requestPurchase
+      // or the user could get charged but we only see an error.
+      if (!inAppPayListeners) {
+        inAppPayListeners = [
+          purchaseUpdatedListener(async (purchase) => {
+            // Expect results something like this:
+            // {
+            //   "purchase": {
+            //     "productId": "vidangel_riot_0015",
+            //     "transactionId": "1000000673323302",
+            //     "transactionDate": 1591039683000,
+            //     "transactionReceipt": "..."
+            //   }
+            // }
+            // More detail is available in a query for all previous purchases
+            console.log('purchaseUpdatedListener', { purchase })
+            onProgress({ event: 'iap_update', meta: { purchase } })
+            const receipt = purchase.transactionReceipt
+            if (receipt) {
+              try {
+                const { sku, amount, description, isSubscription } = await getInAppPaymentDataAsync()
+                onSuccess({ sku, amount, description, isSubscription, purchase })
+                await finishTransaction(purchase)
+              } catch (iapError) {
+                onProgress({ event: 'iap_update_error', meta: { iapError: iapError.message } })
+              }
+            }
+          }),
+          purchaseErrorListener(async (error) => {
+            onProgress({ event: 'iap_error', meta: { error } })
+          })
+        ]
+      }
+      onProgress({ event: 'iap_ready' })
       setIapReady(true)
     }
-  }, [iapListeners, iapProducts, iapSubscriptions])
+  }
+
+  // useEffect(() => {
+  //   if (iapListeners?.length === 2 && (iapProducts?.length || iapSubscriptions?.length)) {
+  //     onProgress({ event: 'iap_ready' })
+  //     setIapReady(true)
+  //   }
+  // }, [iapListeners, iapProducts, iapSubscriptions])
 
   useEffect(() => {
-    // Apple doesn't give an immediate response to purchases, so we need to listen for them.
-    // But we don't want multiple listeners at once, or they both get each event.
-    if (iapListeners?.length === 0) {
-      iapListen()
-    }
-    return () => {
-      // This stuff could get run multiple times without problems
-      setIapReady(false)
-      iapListeners.map(listener => listener.remove())
-      setIapListeners([])
-    }
+    // // Apple doesn't give an immediate response to purchases, so we need to listen for them.
+    // // But we don't want multiple listeners at once, or they both get each event.
+    // if (iapListeners?.length === 0) {
+    //   iapListen()
+    // }
+    // return () => {
+    //   // This stuff could get run multiple times without problems
+    //   setIapReady(false)
+    //   iapListeners.map(listener => listener.remove())
+    //   setIapListeners([])
+    // }
   }, [])
 
   async function iapStartPurchase (props) {
@@ -131,7 +132,7 @@ export default function useInAppPayments (props) {
       onError({ message: 'In-app payments are not ready yet. Please try again in a minute or two, then if it still is not working, restart your app.' })
     }
   }
-  return { iapReady, iapSetup, iapProducts, iapSubscriptions, iapStartPurchase, iapProcessing }
+  return { iapReady, iapSetup, iapStartPurchase, iapProcessing }
 }
 
 // Tradeoff: Using AsyncStorage directly in this file reduces files touched => faster development
