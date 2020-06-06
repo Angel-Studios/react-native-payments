@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useState } from 'react'
 import AsyncStorage from '@react-native-community/async-storage'
 import {
+  initConnection,
   getProducts,
   getSubscriptions,
   finishTransaction,
@@ -30,6 +31,7 @@ export default function useInAppPayments (props) {
   const iapSetup = async ({ productIds, subscriptionIds }) => {
     onProgress({ event: 'iap_setup', meta: { productIds, subscriptionIds } })
     if (Platform.OS === 'ios') {
+      initConnection()
       if (productIds) {
         const startTime = Date.now()
         const products = await getProducts(productIds)
