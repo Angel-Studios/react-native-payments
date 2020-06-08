@@ -47,9 +47,9 @@ export default function useNativePayments(props) {
     if (npPrefer) {
       try {
         const deviceSupportsNativePay = await tstripe.deviceSupportsNativePay()
-        onProgress({ event: 'np_device_supports', sku, amount, description, isSubscription, meta: { deviceSupportsNativePay } })
+        onProgress({ event: 'np_device_support', sku, amount, description, isSubscription, meta: { deviceSupportsNativePay } })
         const canMakeNativePayments = deviceSupportsNativePay && await tstripe.canMakeNativePayPayments()
-        onProgress({ event: 'np_can_make_payments', sku, amount, description, isSubscription, meta: { canMakeNativePayments } })
+        onProgress({ event: 'np_payment_capability', sku, amount, description, isSubscription, meta: { canMakeNativePayments } })
         if (canMakeNativePayments) {
           // Native Pay
           const { options, items } = getOptions(Platform.OS, amount, description)
@@ -63,7 +63,7 @@ export default function useNativePayments(props) {
       } catch (error) {
         // Fall back to card entry on any error, not just error.message === 'This device does not support Apple Pay'
         onProgress({ event: 'np_error', sku, amount, description, isSubscription, error })
-        setNpPrefer(false)
+        // setNpPrefer(false)
       }
     }
     // Card Entry Fallback
