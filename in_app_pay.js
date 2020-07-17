@@ -28,6 +28,7 @@ export function InAppPaymentProvider (props) {
     const simpleListeners = [
       purchaseUpdatedListener(async (purchase) => {
         onProgress({ event: 'iap_listener_update', meta: { purchase } })
+        await finishTransaction(purchase)
         setIapUnfinished(true)
       }),
       purchaseErrorListener(async (error) => {
