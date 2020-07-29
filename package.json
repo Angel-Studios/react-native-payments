@@ -1,0 +1,35 @@
+{
+  "name": "@vidangel/react-payments",
+  "version": "1.1.1",
+  "description": "Handle in-app, native, and web payments in a consistent way",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VidAngel/react-payments.git"
+  },
+  "keywords": [
+    "in-app",
+    "payments",
+    "google",
+    "pay",
+    "apple",
+    "pay",
+    "stripe"
+  ],
+  "author": "pivie@vidangel.com",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/VidAngel/react-payments/issues"
+  },
+  "homepage": "https://github.com/VidAngel/react-payments#readme",
+  "dependencies": {
+    "@stripe/react-stripe-js": "^1.1.2",
+    "@stripe/stripe-js": "^1.8.0",
+    "react-native": "0.61.2",
+    "react-native-iap": "^4.4.9",
+    "tipsi-stripe": "^7.5.3"
+  }
+}

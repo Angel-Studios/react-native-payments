@@ -1,18 +1,22 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Platform } from 'react-native'
 import tstripe from 'tipsi-stripe'
 
-const NativePaymentContext = createContext({})
+export default function useNativePay (props) {
+  const onProgress = props.onProgress ? props.onProgress : () => {
+  }
+  ///////////////////////////////////////////
+  // Native Pay (Google/Apple Pay) //////////
+  ///////////////////////////////////////////
 
-export function NativePaymentProvider(props) {
   const [npReady, setNpReady] = useState(false)
   const [npProcessing, setNpProcessing] = useState(false)
   const [npPrefer, setNpPrefer] = useState(true)
-  const [payee, setPayee] = useState()
-  const onProgress = props.onProgress ? props.onProgress : () => { }
+  const [npFellback, setNpFellback] = useState(false)
+  const [payee, setPayee] = useState('')
 
-  function npSetup (props) {
-    const { publishableKey, merchantId, payeeName, preferNativePay = true } = props
+  function npSetup(props) {
+    const {publishableKey, merchantId, payeeName, preferNativePay = true} = props
     // Dev mode is determined by the publishableKey
     // The payeeName is used to identify the company/organization that is going to receive an Apple Pay(ment).
     if (!publishableKey || publishableKey.length <= 0) {
@@ -24,12 +28,15 @@ export function NativePaymentProvider(props) {
     if (!payeeName) {
       throw 'No payeeName found. Please contact support.'
     }
+    if (!preferNativePay) {
+      setNpPrefer(false)
+    }
     setPayee(payeeName)
     let androidPayMode = 'production'
     if (publishableKey.indexOf('_test_') > 0) {
       androidPayMode = 'test'
     }
-    onProgress({ event: 'np_setup', meta: { publishableKey, androidPayMode, merchantId, payee: payeeName } })
+    onProgress({event: 'np_setup', meta: {publishableKey, androidPayMode, merchantId, payee: payeeName}})
     tstripe.setOptions({
       publishableKey,
       androidPayMode, // Android only
@@ -38,38 +45,53 @@ export function NativePaymentProvider(props) {
     setNpReady(true)
   }
 
-  async function npStartPurchase(props) {
-    const { productId, description, amount, isSubscription = false } = props
+  async function npStart(props) {
+    const {productId, description, amount, isSubscription = false} = props
     if (!npReady) {
-      onProgress({ event: 'np_not_setup', productId, amount, description, isSubscription })
+      onProgress({event: 'np_not_setup', productId, amount, description, isSubscription})
       throw 'Native Pay not initialized. Please contact support.'
     }
     setNpProcessing(true)
     if (npPrefer) {
       try {
         const deviceSupportsNativePay = await tstripe.deviceSupportsNativePay()
-        onProgress({ event: 'np_device_support', productId, amount, description, isSubscription, meta: { deviceSupportsNativePay } })
+        onProgress({
+          event: 'np_device_support',
+          productId,
+          amount,
+          description,
+          isSubscription,
+          meta: {deviceSupportsNativePay}
+        })
         const canMakeNativePayments = deviceSupportsNativePay && await tstripe.canMakeNativePayPayments()
-        onProgress({ event: 'np_payment_capability', productId, amount, description, isSubscription, meta: { canMakeNativePayments } })
+        onProgress({
+          event: 'np_payment_capability',
+          productId,
+          amount,
+          description,
+          isSubscription,
+          meta: {canMakeNativePayments}
+        })
         if (canMakeNativePayments) {
           // Native Pay
-          const { options, items } = getOptions(Platform.OS, amount, description)
+          const {options, items} = getOptions(Platform.OS, amount, description)
           const stripePurchase = await tstripe.paymentRequestWithNativePay(options, items)
-          onProgress({ event: 'np_token', productId, description, amount, isSubscription, meta: { stripePurchase } })
+          onProgress({event: 'np_token', productId, description, amount, isSubscription, meta: {stripePurchase}})
           if (stripePurchase?.tokenId) {
             return stripePurchase
           }
         }
       } catch (error) {
         // Fall back to card entry on any error, not just error.message === 'This device does not support Apple Pay'
-        onProgress({ event: 'np_error', productId, amount, description, isSubscription, error })
+        onProgress({event: 'np_error', productId, amount, description, isSubscription, error})
         // setNpPrefer(false)
       }
     }
     // Card Entry Fallback
-    onProgress({ event: 'cc_fallback', productId, description, amount, isSubscription })
+    setNpFellback(true)
+    onProgress({event: 'cc_fallback', productId, description, amount, isSubscription})
     const stripePurchase = await tstripe.paymentRequestWithCardForm()
-    onProgress({ event: 'cc_token', productId, description, amount, isSubscription, meta: { stripePurchase } })
+    onProgress({event: 'cc_token', productId, description, amount, isSubscription, meta: {stripePurchase}})
     if (stripePurchase?.tokenId) {
       return stripePurchase
     } else {
@@ -110,10 +132,10 @@ export function NativePaymentProvider(props) {
         label: description,
         amount: `${amount / 100}`
       },
-      {
-        label: payee, // Final item is the checkout summary
-        amount: `${amount / 100}`
-      }]
+        {
+          label: payee, // Final item is the checkout summary
+          amount: `${amount / 100}`
+        }]
     }
   }
 
@@ -121,23 +143,21 @@ export function NativePaymentProvider(props) {
     return platform === 'android' ? getAndroidOptions(amount, description) : getIosOptions(amount, description)
   }
 
-  async function npEndProcessing() {
+  async function npFinish() {
     setNpProcessing(false)
   }
 
-  return (
-    <NativePaymentContext.Provider value={{
-      npReady,
-      npSetup,
-      npStartPurchase,
-      npEndProcessing,
-      npProcessing
-    }}
-    >{props.children}
-    </NativePaymentContext.Provider>
-  )
-}
+  async function npReset() {
+    setNpProcessing(false)
+  }
 
-export function useNativePayments() {
-  return useContext(NativePaymentContext)
+  return {
+    npReady,
+    npSetup,
+    npStart,
+    npProcessing,
+    npFinish,
+    npReset,
+    npFellback // Unable to use Google/Apple Pay, so asking directly for CC
+  }
 }

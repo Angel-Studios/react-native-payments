@@ -12,6 +12,9 @@ git submodule add https://github.com/VidAngel/react-native-payments.git src/serv
 npm install --save react-native-iap
 npm install --save tipsi-stripe
 
+# Troubleshooting
+yes | sudo ~/Library/Android/sdk/tools/bin/sdkmanager --licenses
+
 # Apple
 You can't do in-app purchases in the Simulator. You must use a real device. You can set up sandbox users for doing in-app purchases on a physical device or in Testflight. Create sandbox users here https://appstoreconnect.apple.com/access/testers. Keep in mind, you will be typing the password in each time you make a test purchase. You can use any random email address (even if it doesn't exist), as no verification is required. Set your sandbox user on your phone in Settings -> your profile -> iTunes & App Store -> Sandbox Account. If you don't call iapEndPurchase after a test purchase (maybe because it failed), the flow will not work properly when you try it again unless you switch sandbox accounts.
 
