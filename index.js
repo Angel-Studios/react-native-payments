@@ -1,3 +1,3 @@
-export {PaymentProvider, usePayments} from './PaymentProvider'
-export {NativePaymentProvider, useNativePayments} from './NativePaymentProvider'
-export {InAppPaymentProvider, useInAppPayments} from './InAppPaymentProvider'
+export { Payments, usePayments } from './Payments'
+export { NativePayments, useNativePayments } from './NativePayments'
+export { InAppPayments, useInAppPayments } from './InAppPayments'

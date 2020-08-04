@@ -3,7 +3,7 @@ import { Platform } from 'react-native'
 
 const NativePaymentContext = createContext({})
 
-export function NativePaymentProvider(props) {
+export default function NativePayments(props) {
   console.log('Platform.OS', Platform.OS)
   // if (Platform.OS !== 'ios' && Platform.OS !== 'android') return (
   //   <></>

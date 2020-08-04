@@ -3,7 +3,7 @@ import useInAppPay from './use_in_app_pay'
 
 const InAppPaymentContext = createContext({})
 
-export function InAppPaymentProvider(props) {
+export default function InAppPayments(props) {
   const {
     iapReady,
     iapSetup,

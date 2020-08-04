@@ -5,7 +5,7 @@ import useWebPay from './use_web_pay'
 
 const PaymentContext = createContext({})
 
-export function PaymentProvider(props) {
+export default function Payments(props) {
   const onProgress = props.onProgress ? props.onProgress : () => {
   }
   const stripe = props.stripe ? props.stripe : () => {
