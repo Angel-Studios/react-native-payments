@@ -1,6 +1,6 @@
 {
   "name": "@vidangel/react-native-payments",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Handle in-app and native payments in a consistent way",
   "main": "index.js",
   "scripts": {
