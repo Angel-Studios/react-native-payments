@@ -1,5 +1,6 @@
 import React, {createContext, useContext} from 'react'
 import { Platform } from 'react-native'
+import useNativePay from './use_native_pay' // This is going to be a problem if Apple makes us rip native payments out of our code again. The reason this is not a problem is because we started doing physical good purchases so Apple is okay with the native payment module.
 
 const NativePaymentContext = createContext({})
 
@@ -8,7 +9,6 @@ export default function NativePayments(props) {
   // if (Platform.OS !== 'ios' && Platform.OS !== 'android') return (
   //   <></>
   // )
-  import useNativePay from './use_native_pay'
   const {
     npReady,
     npSetup,
