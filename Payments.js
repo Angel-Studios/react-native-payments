@@ -1,7 +1,6 @@
 import React, {createContext, useContext, useState, useEffect} from 'react'
 import useNativePay from './use_native_pay'
 import useInAppPay from './use_in_app_pay'
-import useWebPay from './use_web_pay'
 
 const PaymentContext = createContext({})
 
